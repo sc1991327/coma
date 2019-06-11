@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm
 
 class FaceData(object):
-	def __init__(self, nVal, train_file, test_file, reference_mesh_file,pca_n_comp=8, fitpca=False):
+	def __init__(self, nVal, train_file, test_file, reference_mesh_file, pca_n_comp=8, fitpca=False):
 		self.nVal = nVal
 		self.train_file = train_file
 		self.test_file = test_file
@@ -22,8 +22,8 @@ class FaceData(object):
 		self.mean = None 
 		self.std = None
 
-		self.load()
 		self.reference_mesh = Mesh(filename=reference_mesh_file)
+		self.load()
 
 		# self.mean = np.mean(self.vertices_train, axis=0)
 		# self.std = np.std(self.vertices_train, axis=0)
@@ -33,8 +33,14 @@ class FaceData(object):
 
 	def load(self):
 		vertices_train = np.load(self.train_file)
-		self.mean = np.mean(vertices_train, axis=0)
-		self.std = np.std(vertices_train, axis=0)
+
+		# Use Calculated mean & std
+		#self.mean = np.mean(vertices_train, axis=0)
+		#self.std = np.std(vertices_train, axis=0)
+
+		# Use Template mean & std
+		self.mean = np.mean(self.reference_mesh.v, axis=0)
+		self.std = np.std(self.reference_mesh.v, axis=0)
 
 		self.vertices_train = vertices_train[:-self.nVal]
 		self.vertices_val = vertices_train[-self.nVal:]
@@ -57,7 +63,7 @@ class FaceData(object):
 		self.N = self.vertices_train.shape[0]
 
 		if self.fitpca:
-			self.pca.fit(np.reshape(self.vertices_train, (self.N, self.n_vertex*3) ))
+			self.pca.fit(np.reshape(self.vertices_train, (self.N, self.n_vertex*3)))
 		# eigenVals = np.sqrt(self.pca.explained_variance_)
 		# self.pcaMatrix = np.dot(np.diag(eigenVals), self.pca.components_)
 		print('Vertices normalized')
@@ -139,7 +145,7 @@ class MakeSlicedTimeDataset(object):
 	def gather_paths(self, opt):
 		datapaths = []
 		for i in range(len(self.facial_motion_dirs)):
-			print(self.facial_motion_dirs[i])
+			print("facial_motion_dirs: " + self.facial_motion_dirs[i])
 			datapaths += glob.glob(self.facial_motion_dirs[i]+'/*/*/*.ply')
 
 		trainpaths = []
@@ -147,7 +153,7 @@ class MakeSlicedTimeDataset(object):
 		for i in range(len(datapaths)):
 			if (i%100) < 10:
 				testpaths += [datapaths[i]]
-				#print(datapaths[i])
+				print("datapaths: " + datapaths[i])
 			else:
 				trainpaths += [datapaths[i]]
 
@@ -163,9 +169,9 @@ class MakeSlicedTimeDataset(object):
 		vertices = []
 		for p in tqdm(datapaths):
 			mesh_file = p
-			#print "Loading ", mesh_file
+			print "Loading ", mesh_file
 			face_mesh = Mesh(filename=mesh_file)
-			#print "Loaded ", mesh_file
+			print "Loaded ", mesh_file
 			vertices.append(face_mesh.v)
 		return np.array(vertices)
 
@@ -251,17 +257,14 @@ def generateSlicedTimeDataSet(data_path, save_path):
 	return 0
 
 def generateExpressionDataSet(data_path, save_path):
-	test_exps = ['bareteeth','cheeks_in','eyebrow','high_smile','lips_back','lips_up','mouth_down',
-				'mouth_extreme','mouth_middle','mouth_open','mouth_side','mouth_up']
+	test_exps = ['bareteeth', 'cheeks_in', 'eyebrow', 'high_smile', 'lips_back', 'lips_up', 'mouth_down', 'mouth_extreme', 'mouth_middle', 'mouth_open', 'mouth_side', 'mouth_up']
 
 	for exp in test_exps:
 		fm = MakeIdentityExpressionDataset(folders=[data_path], test_exp=exp, dataset_name=os.path.join(save_path, exp), use_templates=0)
 
 def generateIdentityDataset(data_path, save_path):
-	test_ids = ['FaceTalk_170725_00137_TA',  'FaceTalk_170731_00024_TA',  'FaceTalk_170811_03274_TA',
-	  			'FaceTalk_170904_00128_TA',  'FaceTalk_170908_03277_TA',  'FaceTalk_170913_03279_TA',
-				'FaceTalk_170728_03272_TA',  'FaceTalk_170809_00138_TA',  'FaceTalk_170811_03275_TA',
-				'FaceTalk_170904_03276_TA',  'FaceTalk_170912_03278_TA',  'FaceTalk_170915_00223_TA']
+	test_ids = ['FaceTalk_170725_00137_TA',  'FaceTalk_170731_00024_TA',  'FaceTalk_170811_03274_TA', 'FaceTalk_170904_00128_TA',  'FaceTalk_170908_03277_TA',  'FaceTalk_170913_03279_TA',
+				'FaceTalk_170728_03272_TA',  'FaceTalk_170809_00138_TA',  'FaceTalk_170811_03275_TA', 'FaceTalk_170904_03276_TA',  'FaceTalk_170912_03278_TA',  'FaceTalk_170915_00223_TA']
 
 	for ids in test_ids:
 		fm = MakeIdentityExpressionDataset(folders=[data_path], test_exp=ids, dataset_name=os.path.join(save_path,ids), crossval="identity", use_templates=0)
