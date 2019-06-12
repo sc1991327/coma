@@ -18,31 +18,26 @@ reference_changed_mesh_file = 'data/template_c.obj'
 facedata = FaceData(nVal=1, train_file=opt.data+'train.npy', test_file=opt.data+'test.npy',
                     reference_mesh_file=reference_mesh_file, pca_n_comp=int(opt.nz), fitpca=True)
 
-mean = np.mean(Mesh(filename=reference_mesh_file).v, axis=0)
-mean_c = np.mean(Mesh(filename=reference_changed_mesh_file).v, axis=0)
-std = np.std(Mesh(filename=reference_mesh_file).v, axis=0)
-std_c = np.std(Mesh(filename=reference_changed_mesh_file).v, axis=0)
-
 nTest = facedata.vertices_test.shape[0]
 iTest = np.random.randint(0, nTest-1)
 
-mean_vertices_oo = (np.reshape(Mesh(filename=reference_mesh_file).v, (facedata.n_vertex, 3)) * std) + mean
-mean_vertices_oc = (np.reshape(Mesh(filename=reference_mesh_file).v, (facedata.n_vertex, 3)) * std_c) + mean_c
-mean_vertices_co = (np.reshape(Mesh(filename=reference_changed_mesh_file).v, (facedata.n_vertex, 3)) * std) + mean
-mean_vertices_cc = (np.reshape(Mesh(filename=reference_changed_mesh_file).v, (facedata.n_vertex, 3)) * std_c) + mean_c
+test_vertices = (np.reshape(facedata.vertices_test[iTest], (facedata.n_vertex, 3)) * facedata.std) + facedata.mean
 
-test_vertices = (np.reshape(facedata.vertices_test[iTest], (facedata.n_vertex, 3)) * std) + mean
-test_vertices_c = (np.reshape(facedata.vertices_test[iTest], (facedata.n_vertex, 3)) * std_c) + mean_c
+reference_mesh = Mesh(filename=reference_mesh_file)
+temp = facedata.pca.transform(np.reshape(facedata.vertices_test[iTest], (1, facedata.n_vertex*3)), facedata.pca.mean_)
+pca_outputs = facedata.pca.inverse_transform(temp, np.reshape((reference_mesh.v - facedata.mean) / facedata.std, (facedata.n_vertex*3)))
+pca_vertices = (np.reshape(pca_outputs, (facedata.n_vertex, 3)) * facedata.std) + facedata.mean
 
-pca_outputs = facedata.pca.inverse_transform(facedata.pca.transform(np.reshape(facedata.vertices_test[iTest], (1, facedata.n_vertex*3))))
-pca_vertices = (np.reshape(pca_outputs, (facedata.n_vertex, 3)) * std) + mean
-pca_vertices_c = (np.reshape(pca_outputs, (facedata.n_vertex, 3)) * std_c) + mean_c
+reference_changed_mesh = Mesh(filename=reference_changed_mesh_file)
+temp_c = facedata.pca.transform(np.reshape(facedata.vertices_test[iTest], (1, facedata.n_vertex*3)), facedata.pca.mean_)
+pca_c_outputs = facedata.pca.inverse_transform(temp_c, np.reshape((reference_changed_mesh.v - facedata.mean) / facedata.std, (facedata.n_vertex*3)))
+pca_c_vertices = (np.reshape(pca_c_outputs, (facedata.n_vertex, 3)) * facedata.std) + facedata.mean
 
 outmesh = np.zeros((4, facedata.n_vertex*3))
 outmesh[0] = np.reshape(test_vertices, (facedata.n_vertex*3,))
-outmesh[1] = np.reshape(test_vertices_c, (facedata.n_vertex*3,))
+outmesh[1] = np.reshape(Mesh(filename=reference_changed_mesh_file).v, (facedata.n_vertex*3,))
 outmesh[2] = np.reshape(pca_vertices, (facedata.n_vertex*3,))
-outmesh[3] = np.reshape(pca_vertices_c, (facedata.n_vertex*3,))
+outmesh[3] = np.reshape(pca_c_vertices, (facedata.n_vertex*3,))
 
 # vertices = outmesh[0].reshape((facedata.n_vertex, 3))
 # mesh = Mesh(v=vertices, f=facedata.reference_mesh.f)
